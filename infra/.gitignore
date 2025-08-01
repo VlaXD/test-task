@@ -1,0 +1,35 @@
+# Database data directories
+Docker/db_data_primary/
+Docker/db_data_secondary1/
+Docker/db_data_secondary2/
+
+# RabbitMQ data and logs
+Docker/rabbitmq/data/
+Docker/rabbitmq/log/
+
+# MongoDB keyfile (security sensitive)
+Docker/mongo-keyfile/
+
+# Log files
+*.log
+
+# Process ID files
+*.pid
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 

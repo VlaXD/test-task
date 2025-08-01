@@ -1,0 +1,189 @@
+version: '3.8'
+
+services:
+  mongo-primary:
+    image: mongo:6.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./Docker/db_data_primary/:/data/db/
+      - ./Docker/cluster/:/data/configdb/
+      - ./Docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./Docker/cluster/mongo_keyfile:/data/configdb/mongo_keyfile
+    command: >
+      mongod --replSet rs0 
+             --bind_ip_all 
+             --keyFile /data/configdb/mongo_keyfile
+             --port 27017
+    networks:
+      - mongo-cluster
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo-secondary1:
+    image: mongo:6.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./Docker/db_data_secondary1/:/data/db/
+      - ./Docker/cluster/:/data/configdb/
+      - ./Docker/cluster/mongo_keyfile:/data/configdb/mongo_keyfile
+    command: >
+      mongod --replSet rs0 
+             --bind_ip_all 
+             --keyFile /data/configdb/mongo_keyfile
+             --port 27017
+    networks:
+      - mongo-cluster
+    depends_on:
+      mongo-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo-secondary2:
+    image: mongo:6.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27019:27017"
+    volumes:
+      - ./Docker/db_data_secondary2/:/data/db/
+      - ./Docker/cluster/:/data/configdb/
+      - ./Docker/cluster/mongo_keyfile:/data/configdb/mongo_keyfile
+    command: >
+      mongod --replSet rs0 
+             --bind_ip_all 
+             --keyFile /data/configdb/mongo_keyfile
+             --port 27017
+    networks:
+      - mongo-cluster
+    depends_on:
+      mongo-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo-setup:
+    image: mongo:6.0
+    restart: "no"
+    volumes:
+      - ./Docker/setup-replica-set.js:/setup-replica-set.js:ro
+    command: >
+      bash -c "
+        sleep 15 &&
+        mongosh --host mongo-primary:27017 -u root -p example --authenticationDatabase admin /setup-replica-set.js
+      "
+    networks:
+      - mongo-cluster
+    depends_on:
+      mongo-primary:
+        condition: service_healthy
+      mongo-secondary1:
+        condition: service_healthy
+      mongo-secondary2:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ./Docker/rabbitmq/data/:/var/lib/rabbitmq/
+        - ./Docker/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - mongo-cluster
+      - node-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  users-service:
+    build:
+      context: ../users
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3737:3737"
+    environment:
+      MONGO_HOST: mongo-primary
+      MONGO_PORT: 27017
+      MONGO_USER: admin
+      MONGO_PASSWORD: password
+      MONGO_DB: users
+      MONGO_REPLICA_SET: rs0
+      MONGO_READ_HOSTS: mongo-secondary1,mongo-secondary2
+      MONGO_READ_PORTS: 27017,27017
+      MONGO_READ_PREFERENCE: secondaryPreferred
+      MONGO_MAX_POOL_SIZE: 20
+      MONGO_MIN_POOL_SIZE: 5
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 5672
+      RMQ_USER: guest
+      RMQ_PASS: guest
+      LOG_LEVEL: info
+      HOST_APP: 0.0.0.0
+    networks:
+      - mongo-cluster
+      - node-network
+    depends_on:
+      mongo-setup:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  notifications-service:
+    build:
+      context: ../notifications
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3333:3333"
+    environment:
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 5672
+      RMQ_USER: guest
+      RMQ_PASS: guest
+      EMAILS_BASE_URL: http://notifications-service:3333
+      LOG_LEVEL: info
+      HOST_APP: 0.0.0.0
+    networks:
+      - mongo-cluster
+      - node-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+networks:
+  mongo-cluster:
+    driver: bridge
+  node-network:
+    driver: bridge
+
+volumes:
+  db_data_primary:
+  db_data_secondary1:
+  db_data_secondary2:

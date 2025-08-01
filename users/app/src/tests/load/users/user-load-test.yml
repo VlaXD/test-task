@@ -1,0 +1,52 @@
+config:
+  target: 'http://localhost:3737'
+  phases:
+    - duration: 10
+      arrivalRate: 50
+      rampTo: 200
+      name: 'Warm up'
+    - duration: 30
+      arrivalRate: 200
+      rampTo: 500
+      name: 'Ramp up'
+    - duration: 60
+      arrivalRate: 1000
+      name: 'Sustained load'
+    - duration: 20
+      arrivalRate: 50
+      rampTo: 10
+      name: 'Cool down'
+  processor: "./user-load-processor.js"
+  defaults:
+    headers:
+      Accept: 'application/json'
+      Content-Type: 'application/json'
+    timeout: 10000
+  variables:
+    baseUrl: 'http://localhost:3737'
+
+scenarios:
+  - name: 'Create User Only'
+    weight: 60
+    flow:
+      - function: "generateUserData"
+      - post:
+          url: '/users'
+          json:
+            email: "{{ user_email }}"
+            name: "{{ user_name }}"
+          expect:
+            - statusCode: 201
+            - contentType: application/json
+            - hasProperty: "_id"
+            - hasProperty: "email"
+            - hasProperty: "name"
+
+  - name: 'Get All Users'
+    weight: 40
+    flow:
+      - get:
+          url: '/users'
+          expect:
+            - statusCode: 200
+            - contentType: application/json 
