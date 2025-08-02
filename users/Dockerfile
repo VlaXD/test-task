@@ -4,7 +4,8 @@ WORKDIR /app
 ENV HUSKY_INIT=false
 COPY app ./
 
-RUN yarn install && \
+RUN chmod +x scripts/husky-install.sh && \
+    yarn install && \
     yarn lint-check && \
     yarn build && \
     rm -rf node_modules && \

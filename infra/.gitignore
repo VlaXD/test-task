@@ -8,7 +8,7 @@ Docker/rabbitmq/data/
 Docker/rabbitmq/log/
 
 # MongoDB keyfile (security sensitive)
-Docker/mongo-keyfile/
+Docker/cluster/mongo_keyfile
 
 # Log files
 *.log

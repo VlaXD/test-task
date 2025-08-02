@@ -28,7 +28,7 @@ describe('UsersController (e2e)', () => {
 		it('should create a user successfully', async () => {
 			const mockEmail = `test${getRandomInt()}@example.com`;
 			const mockName = 'John Doe';
-			
+
 			const response = await request(app.getHttpServer())
 				.post(BASE_PATH)
 				.send({ email: mockEmail, name: mockName });
@@ -40,8 +40,7 @@ describe('UsersController (e2e)', () => {
 			expect(body).toHaveProperty('createdAt');
 			expect(body).toHaveProperty('updatedAt');
 			expect(body).toHaveProperty('id');
-			
-			// Store the created user ID for later tests
+
 			createdUserId = body.id;
 		});
 
@@ -91,7 +90,7 @@ describe('UsersController (e2e)', () => {
 
 		it('should fail to create user with duplicate email', async () => {
 			const mockEmail = `duplicate${getRandomInt()}@example.com`;
-			
+
 			await request(app.getHttpServer())
 				.post(BASE_PATH)
 				.send({ email: mockEmail, name: 'First User' });
@@ -111,7 +110,7 @@ describe('UsersController (e2e)', () => {
 
 			expect(response.status).toBe(HttpStatus.OK);
 			expect(Array.isArray(response.body)).toBe(true);
-			
+
 			if (response.body.length > 0) {
 				const user = response.body[0];
 				expect(user).toHaveProperty('id');
@@ -136,7 +135,7 @@ describe('UsersController (e2e)', () => {
 
 			expect(response.status).toBe(HttpStatus.OK);
 			expect(Array.isArray(response.body)).toBe(true);
-			
+
 			if (response.body.length > 0) {
 				const user = response.body[0];
 				expect(user).toHaveProperty('email');
@@ -181,14 +180,13 @@ describe('UsersController (e2e)', () => {
 			expect(response.body).toHaveProperty('id', userId);
 			expect(response.body).toHaveProperty('email');
 			expect(response.body).toHaveProperty('name');
-			// Should not have other properties when projection is used
 			expect(response.body).not.toHaveProperty('createdAt');
 			expect(response.body).not.toHaveProperty('updatedAt');
 		});
 
 		it('should return 404 for non-existent user ID', async () => {
-			const fakeId = '64f8b1c8e4b0a1234567890a'; // Valid ObjectId format but non-existent
-			
+			const fakeId = '64f8b1c8e4b0a1234567890a';
+
 			const response = await request(app.getHttpServer())
 				.get(`${BASE_PATH}/${fakeId}`);
 
@@ -198,7 +196,7 @@ describe('UsersController (e2e)', () => {
 
 		it('should return 400 for invalid user ID format', async () => {
 			const invalidId = 'invalid-id';
-			
+
 			const response = await request(app.getHttpServer())
 				.get(`${BASE_PATH}/${invalidId}`);
 
@@ -267,7 +265,7 @@ describe('UsersController (e2e)', () => {
 
 		it('should return 404 for non-existent user ID on update', async () => {
 			const fakeId = '64f8b1c8e4b0a1234567890a';
-			
+
 			const response = await request(app.getHttpServer())
 				.put(`${BASE_PATH}/${fakeId}`)
 				.send({ name: 'Updated Name' });
@@ -327,7 +325,7 @@ describe('UsersController (e2e)', () => {
 
 		it('should return 404 for non-existent user ID on delete', async () => {
 			const fakeId = '64f8b1c8e4b0a1234567890a';
-			
+
 			const response = await request(app.getHttpServer())
 				.delete(`${BASE_PATH}/${fakeId}`);
 
@@ -337,7 +335,7 @@ describe('UsersController (e2e)', () => {
 
 		it('should return 400 for invalid user ID format on delete', async () => {
 			const invalidId = 'invalid-id';
-			
+
 			const response = await request(app.getHttpServer())
 				.delete(`${BASE_PATH}/${invalidId}`);
 

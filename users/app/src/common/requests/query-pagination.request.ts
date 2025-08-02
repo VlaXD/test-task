@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumberString, IsOptional, MaxLength } from 'class-validator';
+import { IsNumberString, IsOptional } from 'class-validator';
 
 export class QueryPaginationRequest {
 	@ApiProperty({
